@@ -1,0 +1,57 @@
+{
+  "_explain": "One row per epoch. epoch 0 is the untrained network. final_model.json holds the weights from the last epoch.",
+  "run": "2026-10-12_14-34-29",
+  "total_seconds": 26.872,
+  "best_epoch_by_test_accuracy": 4,
+  "best_test_accuracy": 0.8895,
+  "epochs": [
+    {
+      "epoch": 0,
+      "train_loss": null,
+      "train_accuracy": null,
+      "test_loss": 0.70431,
+      "test_accuracy": 0.5091,
+      "seconds": 0
+    },
+    {
+      "epoch": 1,
+      "train_loss": 0.63572,
+      "train_accuracy": 0.5831,
+      "test_loss": 0.40686,
+      "test_accuracy": 0.8212,
+      "seconds": 1.097
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.310821,
+      "train_accuracy": 0.8692,
+      "test_loss": 0.498267,
+      "test_accuracy": 0.794,
+      "seconds": 1.044
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.263303,
+      "train_accuracy": 0.8925,
+      "test_loss": 0.32737,
+      "test_accuracy": 0.8782,
+      "seconds": 1.056
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.2419,
+      "train_accuracy": 0.9026,
+      "test_loss": 0.273105,
+      "test_accuracy": 0.8895,
+      "seconds": 1.069
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.227414,
+      "train_accuracy": 0.9081,
+      "test_loss": 0.272752,
+      "test_accuracy": 0.8877,
+      "seconds": 1.027
+    }
+  ]
+}

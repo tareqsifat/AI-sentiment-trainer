@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentiment Trainer</title>
+<style>
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --ink: #1c1c1a; --muted: #6d6b64; --line: #e2e0d8;
+    --accent: #2c5d8f; --accent-ink: #ffffff; --pos: #2f7d50; --neg: #b4432f; --soft: #f0efea;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151513; --card: #1e1e1b; --ink: #ebeae4; --muted: #9b9990; --line: #33322d;
+      --accent: #7eb0e3; --accent-ink: #10202f; --pos: #6cc58f; --neg: #ea8b77; --soft: #262622;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 28px 16px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2 .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--soft); font-size: 12px; color: var(--muted); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button { font: inherit; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 7px 14px; border-radius: 7px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  input, select, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  input[type=file] { border: none; padding: 0; background: none; max-width: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; margin-bottom: 14px; }
+  .grid label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  .grid input { width: 100%; }
+  .hint { font-size: 12px; color: var(--muted); }
+  .bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; flex: 1; min-width: 160px; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 10px 0; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .console { font: 12.5px/1.55 var(--mono); background: var(--soft); border-radius: 7px; padding: 10px 12px; height: 210px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  .tablewrap { overflow-x: auto; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+  .files { font: 12.5px/1.7 var(--mono); max-height: 320px; overflow: auto; }
+  .files a { color: var(--accent); text-decoration: none; }
+  .files a:hover { text-decoration: underline; }
+  .files .dir { color: var(--muted); margin-top: 6px; }
+  .files .size { color: var(--muted); float: right; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+  .pill.pos { background: color-mix(in srgb, var(--pos) 15%, transparent); }
+  .pill.neg { background: color-mix(in srgb, var(--neg) 15%, transparent); }
+  .sample { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin: 6px 0; }
+  .err { color: var(--neg); font-size: 13px; }
+  svg text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .legend { font-size: 12px; color: var(--muted); display: flex; gap: 14px; }
+  .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 5px; }
+  textarea { width: 100%; min-height: 70px; resize: vertical; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .chip { font: 12px var(--mono); background: var(--soft); border-radius: 4px; padding: 1px 6px; }
+  .chip.unk { text-decoration: line-through; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sentiment Trainer</h1>
+  <p class="lede">A neural network built neuron by neuron, trained on movie reviews. Every epoch writes its weights, biases, TF-IDF values and a full trace of one training step to <code>runs/</code>.</p>
+
+  <section>
+    <h2><span class="n">1</span>Dataset</h2>
+    <div class="row">
+      <input type="file" id="file" accept=".csv,text/csv">
+      <button id="uploadBtn">Upload</button>
+      <div class="bar" id="upBar" hidden><div></div></div>
+      <span class="hint" id="upMsg"></span>
+    </div>
+    <div id="dsInfo" class="hint" style="margin-top:10px">No dataset uploaded yet. Expected columns: <code>review,sentiment</code> with positive/negative labels (the Kaggle "IMDB Dataset of 50K Movie Reviews" file).</div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Settings</h2>
+    <div class="grid">
+      <label>Rows to use (0 = all)<input id="maxRows" type="number" min="0" value="0"></label>
+      <label>Test split<input id="testSplit" type="number" step="0.05" min="0.05" max="0.5" value="0.2"></label>
+      <label>Vocabulary size (input neurons)<input id="maxVocab" type="number" min="50" value="5000"></label>
+      <label>Min document frequency<input id="minDf" type="number" min="1" value="5"></label>
+      <label>Hidden layers (comma separated)<input id="hidden" type="text" value="16,8"></label>
+      <label>Epochs<input id="epochs" type="number" min="1" value="5"></label>
+      <label>Learning rate<input id="learningRate" type="number" step="0.05" min="0.0001" value="0.3"></label>
+      <label>Seed<input id="seed" type="number" value="42"></label>
+      <label>Log curve every N reviews<input id="curveEvery" type="number" min="10" value="1000"></label>
+      <label>Pause between epoch stages (ms)<input id="pauseMs" type="number" min="0" value="400"></label>
+    </div>
+    <div class="row">
+      <button id="trainBtn" disabled>Train</button>
+      <button id="stopBtn" class="ghost" disabled>Stop</button>
+      <span class="hint">Tip: try 5000 rows first to see the whole pipeline in a few seconds.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Training <span class="hint" id="runName"></span></h2>
+    <div class="row">
+      <div class="bar" id="trainBar"><div></div></div>
+      <span class="hint" id="trainMsg">Idle</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sEpoch">–</b><span>epoch</span></div>
+      <div class="stat"><b id="sLoss">–</b><span>running loss</span></div>
+      <div class="stat"><b id="sAcc">–</b><span>running train accuracy</span></div>
+      <div class="stat"><b id="sTest">–</b><span>last test accuracy</span></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--neg)"></i>running loss</span><span><i style="background:var(--accent)"></i>running accuracy</span><span><i style="background:var(--pos)"></i>test accuracy (per epoch)</span></div>
+    <svg id="chart" viewBox="0 0 700 190" width="100%" preserveAspectRatio="none" style="display:block;margin:6px 0 14px"></svg>
+    <div class="split">
+      <div>
+        <div class="tablewrap"><table id="epochTable"><thead><tr><th>epoch</th><th>train loss</th><th>train acc</th><th>test loss</th><th>test acc</th><th>sec</th></tr></thead><tbody></tbody></table></div>
+        <div class="console" id="console" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <div class="hint" style="margin-bottom:4px">Files written in this run</div>
+        <div class="files" id="liveFiles"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Runs and log files</h2>
+    <div class="row" style="margin-bottom:10px">
+      <select id="runSelect"></select>
+      <button class="ghost" id="refreshRuns">Refresh</button>
+      <span class="hint">Click a file to open it. Start with README.md.</span>
+    </div>
+    <div class="files" id="runFiles"></div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>Try a sentence</h2>
+    <textarea id="predText">The acting was not good, but the story was wonderful and I loved the ending.</textarea>
+    <div class="row" style="margin-top:8px">
+      <select id="predRun"></select>
+      <select id="predEpoch"></select>
+      <button id="predBtn">Predict</button>
+      <span class="hint">Pick epoch_0 to see what the untrained network says about the same sentence.</span>
+    </div>
+    <div id="predOut" style="margin-top:12px"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = x => (x * 100).toFixed(2) + '%';
+const kb = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1024).toFixed(1) + ' KB';
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j && j.error || r.statusText);
+  return j;
+}
+
+// ---------- 1. dataset ----------
+function showDataset(d) {
+  if (!d) return;
+  $('#trainBtn').disabled = running;
+  $('#dsInfo').innerHTML = `
+    <div class="stats">
+      <div class="stat"><b>${d.rows.toLocaleString()}</b><span>labelled reviews</span></div>
+      <div class="stat"><b class="pos">${d.positive.toLocaleString()}</b><span>positive</span></div>
+      <div class="stat"><b class="neg">${d.negative.toLocaleString()}</b><span>negative</span></div>
+      <div class="stat"><b>${d.avgWords}</b><span>avg words / review</span></div>
+      <div class="stat"><b>${kb(d.bytes)}</b><span>${esc(d.fileName)}</span></div>
+    </div>
+    <div>Text column <code>${esc(d.textColumn)}</code>, label column <code>${esc(d.labelColumn)}</code>${d.skipped ? `, ${d.skipped} rows skipped (no usable label)` : ''}.</div>
+    ${d.samples.map(s => `<div class="sample"><span class="${s.label === 'positive' ? 'pos' : 'neg'}">${s.label}</span> · ${esc(s.text)}…</div>`).join('')}`;
+}
+
+$('#uploadBtn').onclick = () => {
+  const f = $('#file').files[0];
+  if (!f) { $('#upMsg').textContent = 'Choose a CSV file first.'; return; }
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/upload');
+  xhr.setRequestHeader('X-Filename', f.name);
+  $('#upBar').hidden = false;
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) $('#upBar > div').style.width = (e.loaded / e.total * 100) + '%';
+    $('#upMsg').textContent = e.loaded < e.total ? `Uploading ${kb(e.loaded)} / ${kb(e.total)}` : 'Parsing CSV…';
+  };
+  xhr.onload = () => {
+    const j = JSON.parse(xhr.responseText);
+    if (xhr.status !== 200) { $('#upMsg').innerHTML = `<span class="err">${esc(j.error)}</span>`; return; }
+    $('#upMsg').textContent = 'Uploaded.';
+    showDataset(j);
+  };
+  xhr.onerror = () => { $('#upMsg').innerHTML = '<span class="err">Upload failed.</span>'; };
+  xhr.send(f);
+};
+
+// ---------- 2/3. training ----------
+let running = false, points = [], testPts = [], totalEpochs = 1;
+
+function setRunning(r) {
+  running = r;
+  $('#trainBtn').disabled = r || !$('#dsInfo .stats');
+  $('#stopBtn').disabled = !r;
+  $('#uploadBtn').disabled = r;
+}
+
+$('#trainBtn').onclick = async () => {
+  const ids = ['maxRows', 'testSplit', 'maxVocab', 'minDf', 'hidden', 'epochs', 'learningRate', 'seed', 'curveEvery', 'pauseMs'];
+  const cfg = Object.fromEntries(ids.map(id => [id, $('#' + id).value]));
+  try { await api('/api/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) }); }
+  catch (e) { logLine('ERROR ' + e.message); }
+};
+$('#stopBtn').onclick = () => api('/api/stop', { method: 'POST' });
+
+function logLine(t) {
+  const c = $('#console');
+  const atEnd = c.scrollTop + c.clientHeight >= c.scrollHeight - 5;
+  c.textContent += t + '\n';
+  if (atEnd) c.scrollTop = c.scrollHeight;
+}
+
+function resetTraining() {
+  points = []; testPts = [];
+  $('#console').textContent = '';
+  $('#liveFiles').innerHTML = '';
+  $('#epochTable tbody').innerHTML = '';
+  ['#sEpoch', '#sLoss', '#sAcc', '#sTest'].forEach(s => $(s).textContent = '–');
+  $('#trainBar > div').style.width = '0';
+  drawChart();
+}
+
+let liveRun = null, lastDir = null;
+function addLiveFile(f) {
+  const dir = f.path.includes('/') ? f.path.split('/')[0] : '';
+  const box = $('#liveFiles');
+  if (dir !== lastDir && dir) box.insertAdjacentHTML('beforeend', `<div class="dir">${esc(dir)}/</div>`);
+  lastDir = dir;
+  const name = f.path.split('/').pop();
+  box.insertAdjacentHTML('beforeend', `<div style="padding-left:${dir ? 14 : 0}px"><a href="/runs/${encodeURIComponent(f.run)}/${f.path}" target="_blank">${esc(name)}</a><span class="size">${kb(f.bytes)}</span></div>`);
+  box.scrollTop = box.scrollHeight;
+}
+
+function drawChart() {
+  const W = 700, H = 190, L = 34, R = 8, T = 8, B = 22;
+  const n = points.length;
+  const x = g => L + (W - L - R) * (n > 1 ? g / (totalEpochs) : 0);
+  const y = v => T + (H - T - B) * (1 - Math.min(v, 1));
+  let s = '';
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" opacity=".12"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  for (let e = 0; e <= totalEpochs; e++) s += `<text x="${x(e)}" y="${H - 6}" text-anchor="middle">${e}</text>`;
+  const line = (key, color) => n ? `<polyline fill="none" stroke="${color}" stroke-width="1.8" points="${points.map(p => `${x(p.g).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')}"/>` : '';
+  s += line('loss', 'var(--neg)') + line('acc', 'var(--accent)');
+  s += testPts.map(p => `<circle cx="${x(p.e)}" cy="${y(p.acc)}" r="4" fill="var(--pos)"><title>epoch ${p.e}: ${pct(p.acc)}</title></circle>`).join('');
+  $('#chart').innerHTML = s;
+}
+
+function handle(m) {
+  switch (m.type) {
+    case 'hello': setRunning(m.running); break;
+    case 'reset': resetTraining(); setRunning(true); break;
+    case 'start':
+      liveRun = m.run; lastDir = null;
+      $('#runName').textContent = 'runs/' + m.run;
+      totalEpochs = Number($('#epochs').value) || 1;
+      setRunning(true);
+      break;
+    case 'log': logLine(m.text); break;
+    case 'file': addLiveFile(m); break;
+    case 'progress': {
+      totalEpochs = m.epochs;
+      const g = (m.epoch - 1) + m.seen / m.total;
+      points.push({ g, loss: m.loss, acc: m.acc });
+      $('#trainBar > div').style.width = (g / m.epochs * 100) + '%';
+      $('#trainMsg').textContent = `epoch ${m.epoch}/${m.epochs} · ${m.seen.toLocaleString()} / ${m.total.toLocaleString()} reviews`;
+      $('#sEpoch').textContent = `${m.epoch}/${m.epochs}`;
+      $('#sLoss').textContent = m.loss.toFixed(4);
+      $('#sAcc').textContent = pct(m.acc);
+      drawChart();
+      break;
+    }
+    case 'epoch': {
+      const r = m.row;
+      testPts.push({ e: r.epoch, acc: r.test_accuracy });
+      $('#sTest').textContent = pct(r.test_accuracy);
+      $('#epochTable tbody').insertAdjacentHTML('beforeend', `<tr><td>${r.epoch}</td><td>${r.train_loss.toFixed(4)}</td><td>${pct(r.train_accuracy)}</td><td>${r.test_loss.toFixed(4)}</td><td><b>${pct(r.test_accuracy)}</b></td><td>${r.seconds.toFixed(1)}</td></tr>`);
+      drawChart();
+      break;
+    }
+    case 'done':
+      setRunning(false);
+      $('#trainMsg').textContent = `Done in ${m.summary.total_seconds}s · best test accuracy ${pct(m.summary.best_test_accuracy)} (epoch ${m.summary.best_epoch_by_test_accuracy})`;
+      $('#trainBar > div').style.width = '100%';
+      refreshRuns(m.run);
+      break;
+    case 'error': setRunning(false); logLine('ERROR ' + m.message); $('#trainMsg').textContent = 'Failed'; refreshRuns(); break;
+    case 'stopped': setRunning(false); logLine('Stopped.'); $('#trainMsg').textContent = 'Stopped'; refreshRuns(); break;
+  }
+}
+
+function connect() {
+  const es = new EventSource('/api/events');
+  es.onmessage = e => handle(JSON.parse(e.data));
+  es.onerror = () => { es.close(); setTimeout(connect, 2000); };
+}
+
+// ---------- 4. runs ----------
+let runs = [];
+async function refreshRuns(select) {
+  runs = await api('/api/runs');
+  const opts = runs.length ? runs.map(r => `<option value="${esc(r.name)}">${esc(r.name)}${r.running ? ' (running)' : r.finished ? ` · best ${pct(r.bestTestAccuracy)}` : ' (incomplete)'}</option>`).join('') : '<option value="">no runs yet</option>';
+  const keepFiles = select || $('#runSelect').value;
+  const keepPred = select || $('#predRun').value;
+  $('#runSelect').innerHTML = opts;
+  $('#predRun').innerHTML = opts;
+  if (runs.some(r => r.name === keepFiles)) $('#runSelect').value = keepFiles;
+  if (runs.some(r => r.name === keepPred)) $('#predRun').value = keepPred;
+  showRunFiles();
+  fillEpochs();
+}
+
+async function showRunFiles() {
+  const run = $('#runSelect').value;
+  if (!run) { $('#runFiles').innerHTML = '<span class="hint">Train once and the log folder appears here.</span>'; return; }
+  const files = await api(`/api/runs/${encodeURIComponent(run)}/files`);
+  let html = '', last = null;
+  for (const f of files) {
+    const dir = f.path.includes('/') ? f.path.split('/')[0] : '';
+    if (dir !== last && dir) html += `<div class="dir">${esc(dir)}/</div>`;
+    last = dir;
+    html += `<div style="padding-left:${dir ? 14 : 0}px"><a href="/runs/${encodeURIComponent(run)}/${f.path}" target="_blank">${esc(f.path.split('/').pop())}</a><span class="size">${kb(f.bytes)}</span></div>`;
+  }
+  $('#runFiles').innerHTML = html;
+}
+
+function fillEpochs() {
+  const r = runs.find(x => x.name === $('#predRun').value);
+  if (!r) { $('#predEpoch').innerHTML = ''; return; }
+  const opts = r.epochs.map(e => `<option value="${e.split('_')[1]}">${e}</option>`);
+  if (r.finished) opts.push('<option value="final" selected>final model</option>');
+  $('#predEpoch').innerHTML = opts.join('');
+}
+
+$('#runSelect').onchange = showRunFiles;
+$('#refreshRuns').onclick = () => refreshRuns();
+$('#predRun').onchange = fillEpochs;
+
+// ---------- 5. predict ----------
+$('#predBtn').onclick = async () => {
+  const out = $('#predOut');
+  try {
+    const p = await api('/api/predict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: $('#predText').value, run: $('#predRun').value, epoch: $('#predEpoch').value }),
+    });
+    const cls = p.label === 'positive' ? 'pos' : 'neg';
+    out.innerHTML = `
+      <div class="row"><span class="pill ${cls}">${p.label.toUpperCase()}</span><span>score <b>${p.score}</b> (network output after epoch ${p.epoch}; ≥ 0.5 = positive)</span></div>
+      <div class="hint" style="margin-top:10px">Tokens (crossed out = not in vocabulary, so no input neuron for it)</div>
+      <div class="chips">${p.tokens.map(t => `<span class="chip ${p.unknown.includes(t) ? 'unk' : ''}">${esc(t)}</span>`).join('') || '<span class="hint">none</span>'}</div>
+      <div class="hint">Stopwords dropped: ${esc(p.stopwordsRemoved.join(', ') || 'none')}</div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>token</th><th>input neuron</th><th>tf</th><th>idf</th><th>input value (tf-idf, normalized)</th><th>score without it</th><th>impact</th></tr></thead>
+        <tbody>${p.rows.map(r => `<tr><td><code>${esc(r.token)}</code></td><td>#${r.input_neuron}</td><td>${r.tf}</td><td>${r.idf}</td><td>${r.normalized}</td><td>${r.score_without}</td><td class="${r.impact >= 0 ? 'pos' : 'neg'}">${r.impact >= 0 ? '+' : ''}${r.impact}</td></tr>`).join('')}</tbody>
+      </table></div>
+      ${p.hidden.map(h => `<div class="hint" style="margin-top:8px">${h.layer} outputs: <code>${h.outputs.join('  ')}</code></div>`).join('')}`;
+  } catch (e) { out.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+};
+
+// ---------- start ----------
+api('/api/dataset').then(showDataset).catch(() => {});
+refreshRuns().catch(() => {});
+drawChart();
+connect();
+</script>
+</body>
+</html>

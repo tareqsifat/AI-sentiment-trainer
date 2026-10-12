@@ -1,0 +1,54 @@
+{
+  "_explain": "What the network is trained and tested on. Check that positive/negative are roughly balanced: if 90% were positive, a model that always says \"positive\" would already score 90%.",
+  "csv_file": "IMDB Dataset.csv",
+  "text_column": "review",
+  "label_column": "sentiment",
+  "labelled_rows_in_file": 50000,
+  "rows_skipped": 0,
+  "rows_used": 50000,
+  "labels_all": {
+    "positive": 25000,
+    "negative": 25000
+  },
+  "train": {
+    "reviews": 40000,
+    "labels": {
+      "positive": 20091,
+      "negative": 19909
+    }
+  },
+  "test": {
+    "reviews": 10000,
+    "labels": {
+      "positive": 4909,
+      "negative": 5091
+    }
+  },
+  "review_length_in_words": {
+    "min": 4,
+    "median": 173,
+    "mean": 231,
+    "max": 2470
+  },
+  "avg_tokens_per_review_after_cleaning": 114,
+  "avg_active_input_neurons_per_review": 75,
+  "share_of_token_occurrences_covered_by_vocabulary": "79.71%",
+  "note_on_sparsity": "Each review switches on about 75 of 5000 input neurons; the rest output 0.",
+  "samples": [
+    {
+      "row": 3822,
+      "label": "negative",
+      "text": "Martin Lawrence is not a funny man i Runteldat. He just has too much on his mind and he is too mad which trips his puns pretty early in the game. He tries to make fun of critics, which boils down to \"f*** them\". Then he goes on to rather primitive sexual jokes on smokers with throat cancer and it just goes downhill from there. 3/10"
+    },
+    {
+      "row": 37526,
+      "label": "positive",
+      "text": "One of the best (if not the best) Stephen King's screenings. Dark as dark can be, surprising non-hollywood ending, terrifying atmosphere, amazing book adaptation, outstanding cast, educational (don't play with afterlife), in short - everything an excellent horror should be... My favorite horror movie, straight 10+."
+    },
+    {
+      "row": 25961,
+      "label": "negative",
+      "text": "Firstly, this is NOT an adaptation of a Stephen King book, short story, novella, or anything else. From EW's Web site, and their review on the show when it first aired, \"...he never writes down to his audience, and he never betrays contempt for his subjects. His first original work for television, Stephen King's ''Golden Years'' (CBS, July 16, 9-11 p.m.), is no exception.\" The series was apparently going to be (as others have mentioned) an ongoing series, which is why we never saw the ending aft…"
+    }
+  ]
+}

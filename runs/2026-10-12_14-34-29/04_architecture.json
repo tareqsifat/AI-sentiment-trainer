@@ -1,0 +1,80 @@
+{
+  "_explain": "The shape of the network. The shape never changes during training; only the numbers (weights and biases) do.",
+  "layer_sizes": [
+    5000,
+    16,
+    8,
+    1
+  ],
+  "layers": [
+    {
+      "name": "input",
+      "neurons": 5000,
+      "role": "one neuron per vocabulary token; outputs that token's TF-IDF value (0 if absent)",
+      "first_neurons": [
+        "movie",
+        "film",
+        "like",
+        "good",
+        "time"
+      ]
+    },
+    {
+      "name": "hidden1",
+      "neurons": 16,
+      "role": "learns combinations of words; nobody tells it what to detect",
+      "first_neurons": [
+        "hidden1[0]",
+        "hidden1[1]",
+        "hidden1[2]",
+        "hidden1[3]",
+        "hidden1[4]"
+      ]
+    },
+    {
+      "name": "hidden2",
+      "neurons": 8,
+      "role": "learns combinations of words; nobody tells it what to detect",
+      "first_neurons": [
+        "hidden2[0]",
+        "hidden2[1]",
+        "hidden2[2]",
+        "hidden2[3]",
+        "hidden2[4]"
+      ]
+    },
+    {
+      "name": "output",
+      "neurons": 1,
+      "role": "one neuron; output = probability the review is positive (>= 0.5 means positive)",
+      "first_neurons": [
+        "output[0]"
+      ]
+    }
+  ],
+  "link_groups": [
+    {
+      "from": "input",
+      "to": "hidden1",
+      "links": 80000
+    },
+    {
+      "from": "hidden1",
+      "to": "hidden2",
+      "links": 128
+    },
+    {
+      "from": "hidden2",
+      "to": "output",
+      "links": 8
+    }
+  ],
+  "total_links": 80136,
+  "total_biases": 25,
+  "total_learnable_parameters": 80161,
+  "activation": "sigmoid(z) = 1 / (1 + e^-z) in every non-input neuron",
+  "loss": "binary cross-entropy: -(y·ln(p) + (1-y)·ln(1-p))",
+  "optimizer": "plain stochastic gradient descent, one review at a time (batch size 1)",
+  "weight_init": "uniform random in [-0.5, 0.5] from seed 42; biases start at 0",
+  "links_in_creation_order": "link id k: for each layer, for each sending neuron, for each receiving neuron. checkpoint.json weights[k] belongs to link k."
+}

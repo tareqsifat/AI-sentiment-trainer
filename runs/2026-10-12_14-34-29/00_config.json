@@ -1,0 +1,18 @@
+{
+  "_explain": "The settings this run used. Same settings + same seed + same CSV = the exact same run and the exact same numbers in every file.",
+  "csv_file": "IMDB Dataset.csv",
+  "max_rows": "all",
+  "test_split": 0.2,
+  "vocabulary_size_max": 5000,
+  "min_document_frequency": 5,
+  "hidden_layers": [
+    16,
+    8
+  ],
+  "epochs": 5,
+  "learning_rate": 0.3,
+  "seed": 42,
+  "curve_every_n_reviews": 1000,
+  "pause_ms_between_stages": 400,
+  "started_at": "2026-10-12T08:34:29.447Z"
+}
